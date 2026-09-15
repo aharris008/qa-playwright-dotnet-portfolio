@@ -1,0 +1,60 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: UI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore QaPlaywrightPortfolio.sln
+
+      - name: Build
+        run: dotnet build QaPlaywrightPortfolio.sln --configuration Release --no-restore
+
+      - name: Install Chromium and Linux dependencies
+        run: pwsh QaPlaywrightPortfolio.Tests/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run tests
+        run: >-
+          dotnet test QaPlaywrightPortfolio.sln
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=playwright-tests.trx"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-failure-diagnostics
+          path: '**/TestResults/playwright/**'
+          if-no-files-found: warn
+          retention-days: 14
