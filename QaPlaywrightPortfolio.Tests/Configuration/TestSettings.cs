@@ -3,18 +3,12 @@ namespace QaPlaywrightPortfolio.Tests.Configuration;
 public static class TestSettings
 {
     public const string UiBaseUrlEnvironmentVariable = "QA_UI_BASE_URL";
-    public const string ApiBaseUrlEnvironmentVariable = "QA_API_BASE_URL";
 
     private const string DefaultUiBaseUrl = "https://demo.playwright.dev/todomvc/";
-    private const string DefaultApiBaseUrl = "https://jsonplaceholder.typicode.com/";
 
     public static string UiBaseUrl => GetAbsoluteHttpUrl(
         UiBaseUrlEnvironmentVariable,
         DefaultUiBaseUrl);
-
-    public static string ApiBaseUrl => GetAbsoluteHttpUrl(
-        ApiBaseUrlEnvironmentVariable,
-        DefaultApiBaseUrl);
 
     private static string GetAbsoluteHttpUrl(string environmentVariable, string defaultValue)
     {
@@ -33,3 +27,6 @@ public static class TestSettings
         return uri.AbsoluteUri;
     }
 }
+
+
+

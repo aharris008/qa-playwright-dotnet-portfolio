@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   test:
-    name: UI tests
+    name: Test suite
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

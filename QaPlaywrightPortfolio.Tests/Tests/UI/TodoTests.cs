@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using QaPlaywrightPortfolio.Tests.Configuration;
 using QaPlaywrightPortfolio.Tests.Fixtures;
 using QaPlaywrightPortfolio.Tests.Pages;
@@ -40,7 +41,8 @@ public class TodoTests : UiTestBase
         await _todoPage.AddTodosAsync(completedTodo, activeTodo);
         await _todoPage.CompleteTodoAsync(completedTodo);
 
-        await Expect(_todoPage.TodoItem(completedTodo)).ToHaveClassAsync("completed");
+        await Expect(_todoPage.TodoItem(completedTodo))
+            .ToHaveClassAsync(new Regex(@"\bcompleted\b"));
         await Expect(_todoPage.TodoCheckbox(completedTodo)).ToBeCheckedAsync();
         await Expect(_todoPage.TodoCheckbox(activeTodo)).Not.ToBeCheckedAsync();
         await Expect(_todoPage.RemainingCount).ToHaveTextAsync("1 item left");

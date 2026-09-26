@@ -2,13 +2,12 @@
 
 [![Playwright Tests](https://github.com/aharris008/qa-playwright-dotnet-portfolio/actions/workflows/playwright.yml/badge.svg)](https://github.com/aharris008/qa-playwright-dotnet-portfolio/actions/workflows/playwright.yml)
 
-This repository demonstrates practical browser-test design with Playwright for .NET, C#, and NUnit: readable test intent, stable user-facing locators, web-first assertions, focused page objects, environment-aware configuration, failure diagnostics, and repeatable GitHub Actions execution.
-
-All scenarios use public demonstration services and synthetic test data. The repository contains no employer code, proprietary workflows, credentials, or confidential data.
+This repository demonstrates practical QA automation with Playwright for .NET, C#, and NUnit: readable test intent, stable UI locators, web-first assertions, HTTP/API validation, focused abstractions, deterministic test design, failure diagnostics, and repeatable GitHub Actions execution.
+Scenarios use a public UI demonstration service and a local demo API with synthetic test data. The repository contains no employer code, proprietary workflows, credentials, or confidential data.
 
 ## What is covered
 
-The current suite contains four independent Chromium tests against Playwright's public TodoMVC application.
+The current suite contains four independent Chromium tests against Playwright's public TodoMVC application and three browser-free API tests against a local HTTP fixture.
 
 | Scenario | QA purpose | Categories |
 | --- | --- | --- |
@@ -16,6 +15,9 @@ The current suite contains four independent Chromium tests against Playwright's 
 | Complete one of two todos | State transition, checked state, and remaining-count validation | `UI`, `Regression` |
 | Filter completed todos | Multi-step workflow and visible/hidden result validation | `UI`, `Regression` |
 | Submit an empty todo | Boundary/negative validation that no record is created | `UI`, `Boundary`, `Negative` |
+| Retrieve a known todo | HTTP status, JSON content type, and typed field validation | `API` |
+| Filter todos by user | Exact matching IDs and exclusion of another user's data | `API` |
+| Retrieve an unknown todo | HTTP 404 and a JSON error contract without a success payload | `API` |
 
 These examples emphasize patterns that transfer to regression reliability work: isolated tests, intentional coverage, maintainable interaction boundaries, deterministic assertions, CI execution, and useful artifacts when a failure must be investigated.
 
@@ -28,7 +30,7 @@ These examples emphasize patterns that transfer to regression reliability work: 
 - GitHub Actions on `ubuntu-latest`
 - Chromium
 
-Package versions are pinned in the test project. Coverlet is intentionally omitted because the current tests exercise an external public application; measuring line coverage of the small test harness would not provide meaningful quality information.
+Package versions are pinned in the test project. The local API uses the ASP.NET Core shared framework, with no additional NuGet packages. Coverlet is intentionally omitted: line coverage of the small test harness and demo fixture would not measure coverage of the tested behaviors.
 
 ## Repository structure
 
@@ -41,10 +43,15 @@ qa-playwright-dotnet-portfolio/
 │   ├── Configuration/
 │   │   └── TestSettings.cs
 │   ├── Fixtures/
+│   │   ├── LocalTodoApi.cs
 │   │   └── UiTestBase.cs
+│   ├── Models/
+│   │   └── TodoResponse.cs
 │   ├── Pages/
 │   │   └── TodoPage.cs
 │   ├── Tests/
+│   │   ├── API/
+│   │   │   └── TodoApiTests.cs
 │   │   └── UI/
 │   │       └── TodoTests.cs
 │   └── QaPlaywrightPortfolio.Tests.csproj
@@ -70,15 +77,13 @@ qa-playwright-dotnet-portfolio/
 | Environment variable | Default | Purpose |
 | --- | --- | --- |
 | `QA_UI_BASE_URL` | `https://demo.playwright.dev/todomvc/` | UI application under test |
-| `QA_API_BASE_URL` | `https://jsonplaceholder.typicode.com/` | Reserved for the next API-test milestone |
 
-Both values must be absolute HTTP or HTTPS URLs. No `.env` loader is used; set overrides in the shell or CI environment that starts the test process.
+`QA_UI_BASE_URL` validates an absolute HTTP or HTTPS URL when accessed. No `.env` loader is used; set the override in the shell or CI environment that starts the test process. Local API tests use their fixture's loopback address.
 
 PowerShell example:
 
 ```powershell
 $env:QA_UI_BASE_URL = "https://demo.playwright.dev/todomvc/"
-$env:QA_API_BASE_URL = "https://jsonplaceholder.typicode.com/"
 dotnet test .\QaPlaywrightPortfolio.sln
 ```
 
@@ -86,7 +91,6 @@ Bash, zsh, or another POSIX-compatible shell:
 
 ```bash
 QA_UI_BASE_URL="https://demo.playwright.dev/todomvc/" \
-QA_API_BASE_URL="https://jsonplaceholder.typicode.com/" \
 dotnet test ./QaPlaywrightPortfolio.sln
 ```
 
@@ -142,9 +146,15 @@ dotnet test .\QaPlaywrightPortfolio.sln --filter "TestCategory=UI"
 # Boundary and negative coverage
 dotnet test .\QaPlaywrightPortfolio.sln --filter "TestCategory=Boundary|TestCategory=Negative"
 
-# Exclude UI tests when later API tests are added
-dotnet test .\QaPlaywrightPortfolio.sln --filter "TestCategory!=UI"
+# Run only the local API tests (no browser installation required)
+dotnet test .\QaPlaywrightPortfolio.sln --filter "TestCategory=API"
 ```
+
+## Local API coverage
+
+`LocalTodoApi` starts an ASP.NET Core/Kestrel server on `127.0.0.1` with an OS-assigned port and fixed, read-only data. It implements lookup and user filtering, plus a `404` JSON response containing only `code: "todo_not_found"`. Startup is awaited, and the server is disposed after the fixture. Each test creates and disposes its own Playwright `IAPIRequestContext`; no browser, Docker, database, or external API is required.
+
+Server seed data is separate from the client response model and test expectations. Mixed users make the filter test detect ignored filters, missing results, and unwanted results. These tests demonstrate HTTP and contract validation against a controlled demo, not verification of an external or production service. The existing UI tests still require the public TodoMVC service.
 
 ## CI behavior
 
@@ -152,7 +162,7 @@ dotnet test .\QaPlaywrightPortfolio.sln --filter "TestCategory!=UI"
 
 1. restores and builds the solution with .NET 8 in Release configuration;
 2. installs Chromium and its required Ubuntu dependencies;
-3. runs the NUnit suite and generates a TRX result file;
+3. runs all seven UI and API tests with the same NUnit command and generates a TRX result file;
 4. uploads TRX results even when tests fail; and
 5. uploads Playwright screenshots and traces when a failure occurs.
 
@@ -170,14 +180,17 @@ Diagnostics are best-effort: an artifact-capture problem is logged without hidin
 
 ## Current limitations and next scope
 
-- Coverage currently targets one public TodoMVC UI in Chromium.
-- The suite intentionally remains at four UI tests for this increment; it is not a comprehensive TodoMVC regression pack.
-- The API URL is configured but not exercised yet.
-- No database is required by the public demo.
-- Cross-browser, accessibility, API, and UI/API data-consistency coverage are not yet implemented.
+- UI coverage targets one public TodoMVC application in Chromium; its four tests are not a comprehensive regression pack.
+- Three local API tests exercise a controlled, read-only demo. The external API URL is configured but not exercised.
+- No database is required.
+- Cross-browser, accessibility, external API, and UI/API data-consistency coverage are not yet implemented.
 
-The next increments will add Playwright `IAPIRequestContext` tests, typed response models, and public UI/API data-validation examples. The longer-term target is a compact 10–20-test portfolio in which every test demonstrates a distinct, practical QA technique.
+The portfolio stays compact so that each test demonstrates a distinct, practical QA technique. Future additions may include UI/API data-validation examples against a shared application.
 
 ## License
 
 This project is available under the [MIT License](LICENSE).
+
+
+
+
