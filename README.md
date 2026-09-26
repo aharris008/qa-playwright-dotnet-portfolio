@@ -77,6 +77,7 @@ qa-playwright-dotnet-portfolio/
 | Environment variable | Default | Purpose |
 | --- | --- | --- |
 | `QA_UI_BASE_URL` | `https://demo.playwright.dev/todomvc/` | UI application under test |
+| `QA_API_BASE_URL` | `https://jsonplaceholder.typicode.com/` | Reserved for future external API checks; unused by this suite |
 
 `QA_UI_BASE_URL` validates an absolute HTTP or HTTPS URL when accessed. No `.env` loader is used; set the override in the shell or CI environment that starts the test process. Local API tests use their fixture's loopback address.
 
@@ -84,6 +85,7 @@ PowerShell example:
 
 ```powershell
 $env:QA_UI_BASE_URL = "https://demo.playwright.dev/todomvc/"
+$env:QA_API_BASE_URL = "https://jsonplaceholder.typicode.com/"
 dotnet test .\QaPlaywrightPortfolio.sln
 ```
 
@@ -91,6 +93,7 @@ Bash, zsh, or another POSIX-compatible shell:
 
 ```bash
 QA_UI_BASE_URL="https://demo.playwright.dev/todomvc/" \
+QA_API_BASE_URL="https://jsonplaceholder.typicode.com/" \
 dotnet test ./QaPlaywrightPortfolio.sln
 ```
 
@@ -154,7 +157,7 @@ dotnet test .\QaPlaywrightPortfolio.sln --filter "TestCategory=API"
 
 `LocalTodoApi` starts an ASP.NET Core/Kestrel server on `127.0.0.1` with an OS-assigned port and fixed, read-only data. It implements lookup and user filtering, plus a `404` JSON response containing only `code: "todo_not_found"`. Startup is awaited, and the server is disposed after the fixture. Each test creates and disposes its own Playwright `IAPIRequestContext`; no browser, Docker, database, or external API is required.
 
-Server seed data is separate from the client response model and test expectations. Mixed users make the filter test detect ignored filters, missing results, and unwanted results. These tests demonstrate HTTP and contract validation against a controlled demo, not verification of an external or production service. The existing UI tests still require the public TodoMVC service.
+Server seed data is separate from the client response model and test expectations. Mixed users make the filter test detect ignored filters, missing results, and unwanted results. These tests demonstrate HTTP and contract validation against a controlled demo, not verification of JSONPlaceholder or a production service. The existing UI tests still require the public TodoMVC service.
 
 ## CI behavior
 
@@ -190,7 +193,4 @@ The portfolio stays compact so that each test demonstrates a distinct, practical
 ## License
 
 This project is available under the [MIT License](LICENSE).
-
-
-
 

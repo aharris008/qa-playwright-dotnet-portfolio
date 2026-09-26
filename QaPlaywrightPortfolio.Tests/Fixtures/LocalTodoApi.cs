@@ -12,18 +12,7 @@ public sealed class LocalTodoApi : IAsyncDisposable
 {
     private readonly WebApplication _app;
 
-    private LocalTodoApi(WebApplication app, string baseUrl)[Test]
-public async Task GetUnknownTodo_ReturnsNotFound()
-{
-    var response = await _request.GetAsync("/todos/999");
-
-    Assert.That(response.Status, Is.EqualTo(404));
-
-    using var body = JsonDocument.Parse(await response.TextAsync());
-    Assert.That(
-        body.RootElement.GetProperty("code").GetString(),
-        Is.EqualTo("todo_not_found"));
-}
+    private LocalTodoApi(WebApplication app, string baseUrl)
     {
         _app = app;
         BaseUrl = baseUrl;

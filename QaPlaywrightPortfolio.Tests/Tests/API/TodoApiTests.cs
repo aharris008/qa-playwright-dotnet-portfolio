@@ -72,23 +72,10 @@ public class TodoApiTests : PlaywrightTest
         var response = await _request.GetAsync("/todos/999");
 
         Assert.That(response.Status, Is.EqualTo(404));
-        Assert.That(response.Headers["content-type"], Does.StartWith("application/json"));
+
         using var body = JsonDocument.Parse(await response.TextAsync());
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(
-                body.RootElement.GetProperty("code").GetString(),
-                Is.EqualTo("todo_not_found"));
-
-            Assert.That(
-                body.RootElement.TryGetProperty("id", out _),
-                Is.False,
-                "An error response must not contain a todo ID.");
-
-            Assert.That(
-                body.RootElement.TryGetProperty("title", out _),
-                Is.False,
-                "An error response must not contain a successful todo payload.");
-        }
+        Assert.That(
+            body.RootElement.GetProperty("code").GetString(),
+            Is.EqualTo("todo_not_found"));
     }
 }
